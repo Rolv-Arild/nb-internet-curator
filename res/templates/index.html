@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container">
+    <div class="row">
+        <h2 class="display-2">{{ _('Pywb Wayback Machine') }}</h2>
+        <p class="lead">This archive contains the following collections:</p>
+    </div>
+    <input type="file" id="filepicker" name="fileList" webkitdirectory multiple/>
+    <ul id="listing"></ul>
+    <div class="row">
+        <ul>
+            {% for route in routes %}
+            <li>
+                <a href="{{ env['pywb.app_prefix'] + '/' + route }}">{{ '/' + route }}</a>
+                {% if all_metadata and all_metadata[route] %}
+                ({{ all_metadata[route].title }})
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+<script>
+    const filepicker = document.getElementById("filepicker")
+    if (filepicker) {
+        filepicker.addEventListener("change", function (event) {
+            let output = document.getElementById("listing");
+            let files = event.target.files;
+            console.log(files)
+
+            for (let i = 0; i < files.length; i++) {
+                let item = document.createElement("li");
+                item.innerHTML = files[i].webkitRelativePath;
+                output.appendChild(item);
+            }
+        }, false);
+    }
+</script>
+{% endblock %}
