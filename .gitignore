@@ -1,2 +1,5 @@
 # Project exclude paths
 /venv/
+.vscode
+src/__pycache__
+internet_curator.egg-info/

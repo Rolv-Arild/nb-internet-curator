@@ -22,19 +22,19 @@ def add_collection(*, name, folder):
                 wb_manager(["add", name, arc])
 
 
+routes = web.RouteTableDef()
+
+@routes.post("/add_collection")
+async def add_collection_endpoint(request: Request):
+    data = await request.json()
+
+    try:
+        add_collection(**data)
+        return web.HTTPOk()
+    except TypeError:
+        return web.HTTPBadRequest(reason="Missing required field")
+
 def start_server():
-    routes = web.RouteTableDef()
-
-    @routes.post("/add_collection")
-    async def add_collection_endpoint(request: Request):
-        data = await request.json()
-
-        try:
-            add_collection(**data)
-            return web.HTTPOk()
-        except TypeError:
-            return web.HTTPBadRequest(reason="Missing required field")
-
     app = web.Application()
     app.add_routes(routes)
     web.run_app(app, port=6969)
