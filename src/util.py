@@ -1,9 +1,18 @@
 import os
 import re
+import json
+from pathlib import Path
 
 import warcio
-from pywb.apps.cli import wayback
-from pywb.manager.manager import main as wb_manager
+
+
+def load_config():
+    pth = Path(__file__).parent.parent.absolute() / "config.json"
+    config = json.load(open(pth))
+    return config
+
+
+CONFIG = load_config()
 
 
 class cd:
@@ -46,7 +55,7 @@ def iter_records(folder):
 
 def search(folder, s=None):
     if s is None:
-        s = "^https?:\/\/[\w.]+no(:\d+)?\/?$"
+        s = r"^https?:\/\/[\w.]+no(:\d+)?\/?$"
     for record in iter_records(folder):
         if record.content_type == 'text/html' and record.http_headers.get_statuscode() == "200":
             uri = record.rec_headers.get_header("uri")

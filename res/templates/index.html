@@ -6,7 +6,6 @@
         <p class="lead">This archive contains the following collections:</p>
     </div>
     <input type="file" id="filepicker" name="fileList" webkitdirectory multiple/>
-    <ul id="listing"></ul>
     <div class="row">
         <ul>
             {% for route in routes %}
@@ -21,18 +20,35 @@
     </div>
 </div>
 <script>
-    const filepicker = document.getElementById("filepicker")
+    async function postFolder(folder) {
+        return fetch("http://localhost:6969/add_collection", {
+            method: "POST",
+            mode: "cors",
+            cache: "no-cache",
+            credentials: 'same-origin',
+            headers: {
+                "Content-Type": "application/json",
+                "Origin": "http://localhost/8080"
+            },
+            referrerPolicy: 'no-referrer',
+            body: JSON.stringify({
+                "folder": folder
+            })
+        })
+    }
+
+    const filepicker = document.getElementById("filepicker");
     if (filepicker) {
         filepicker.addEventListener("change", function (event) {
-            let output = document.getElementById("listing");
-            let files = event.target.files;
-            console.log(files)
-
-            for (let i = 0; i < files.length; i++) {
-                let item = document.createElement("li");
-                item.innerHTML = files[i].webkitRelativePath;
-                output.appendChild(item);
+            if (!event.target.files) {
+                return;
             }
+            console.log(filepicker.classList)
+            let files = event.target.files;
+            folder = files[0].webkitRelativePath.split("/")[0];
+            postFolder(folder).catch(e => {
+                console.log(e);
+            })
         }, false);
     }
 </script>
