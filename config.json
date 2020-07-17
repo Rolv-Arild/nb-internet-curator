@@ -1,4 +1,5 @@
 {
   "working_directory": "./res/pywb",
-  "arc_source_directory": "./res/archives"
+  "arc_source_directory": "./res/archives",
+  "result_directory": "./res/verdicts"
 }

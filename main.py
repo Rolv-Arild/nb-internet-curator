@@ -23,7 +23,7 @@ def init_wayback(working_dir):
 
 
 if __name__ == '__main__':
-    wdir = CONFIG["working_directory"]
+    wdir = CONFIG.working_directory
     wP = Process(target=init_wayback, args=(wdir,))
     sP = Process(target=start_server)
 

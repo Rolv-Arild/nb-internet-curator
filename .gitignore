@@ -3,3 +3,6 @@
 .vscode
 src/__pycache__
 internet_curator.egg-info/
+res/archives
+res/pywb
+res/verdicts

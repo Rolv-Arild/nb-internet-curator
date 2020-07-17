@@ -20,8 +20,10 @@
     </div>
 </div>
 <script>
-    async function postFolder(folder) {
-        return fetch("http://localhost:6969/add_collection", {
+    default_url = "http://localhost:6969"
+
+    async function post(endpoint, body) {
+        return fetch(default_url + "/" + endpoint, {
             method: "POST",
             mode: "cors",
             cache: "no-cache",
@@ -31,10 +33,15 @@
                 "Origin": "http://localhost/8080"
             },
             referrerPolicy: 'no-referrer',
-            body: JSON.stringify({
-                "folder": folder
-            })
+            body: body
         })
+    }
+
+    function postFolder(folder) {
+        return post("add_collection",
+            JSON.stringify({
+                "folder": folder
+            }))
     }
 
     const filepicker = document.getElementById("filepicker");
