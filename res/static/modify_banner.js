@@ -1,7 +1,7 @@
 const default_url = "http://localhost:6969"
 
 async function get(endpoint, query) {
-    return fetch(default_url + "/" + endpoint + "?" + query, {
+    return fetch(`${default_url}/${endpoint}?${query}`, {
         method: "GET",
         mode: "cors",
         cache: "no-cache",
@@ -15,7 +15,7 @@ async function get(endpoint, query) {
 }
 
 async function post(endpoint, body) {
-    return fetch(default_url + "/" + endpoint, {
+    return fetch(`${default_url}/${endpoint}`, {
         method: "POST",
         mode: "cors",
         cache: "no-cache",
@@ -139,5 +139,4 @@ const main = () => {
     })
 }
 
-
-main()
+main();
