@@ -5,19 +5,27 @@
         <h2 class="display-2">{{ _('Pywb Wayback Machine') }}</h2>
         <p class="lead">This archive contains the following collections:</p>
     </div>
-    <input type="file" id="filepicker" name="fileList" webkitdirectory multiple/>
-    <div class="row">
-        <ul>
-            {% for route in routes %}
-            <li>
-                <a href="{{ env['pywb.app_prefix'] + '/' + route }}">{{ '/' + route }}</a>
-                {% if all_metadata and all_metadata[route] %}
-                ({{ all_metadata[route].title }})
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
+    <label for="filepicker" class="btn btn-primary" >Choose archive folder</label>
+    <input type="file" 
+        id="filepicker" 
+        class="btn btn-primary" 
+        style="opacity: 0;"
+        name="fileList" 
+        webkitdirectory 
+        multiple/>
+    <h2 style="padding-top: 50px;">
+        Collections:
+    </h2>
+    <ul class="list-group">
+        {% for route in routes %}
+        <li class="list-group">
+            <a class="list-group-item list-group-item-action" href="{{ env['pywb.app_prefix'] + '/' + route }}">{{ '/' + route }}</a>
+            {% if all_metadata and all_metadata[route] %}
+            ({{ all_metadata[route].title }})
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
 </div>
 <script>
     default_url = "http://localhost:6969"

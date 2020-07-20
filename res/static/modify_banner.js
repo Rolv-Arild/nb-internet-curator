@@ -36,42 +36,49 @@ const main = () => {
     }
 
     const spl = window.location.pathname.split("/");
-    const collection = spl[1];
-    const date = spl[2];
-    const url = spl.slice(3).join("/");
-    const urlBody = {collection, date, url}
-    const urlQuery = "collection=" + collection + "&date=" + date + "&url=" + url;
-    const eventual = get("paginate/current", urlQuery)
+    const sessionData = {
+        collection: spl[1],
+        date: spl[2],
+        url: spl.slice(3).join("/")
+    };
+    const urlQuery = `collection=${sessionData.collection}&date=${sessionData.date}&url=${sessionData.url}`;
+    const currentPagePromise = get("paginate/current", urlQuery);
 
     window.addEventListener("load", () => {
         const wbTopBanner = document.getElementById("_wb_frame_top_banner");
-        // const previousButton = document.createElement("button");
+
         const afterButtons = document.getElementById("_wb_ancillary_links");
         // Hack: This seems to make the script run after default_banner.js TODO
-        setTimeout(function () {
+        setTimeout(() => {
             const buttonDiv = document.createElement("div");
             buttonDiv.style.margin = "0 30px 0 0px";
             wbTopBanner.insertBefore(buttonDiv, afterButtons);
+
             const statusDiv = document.createElement("div");
             statusDiv.style.margin = "0 30px 0 0px";
+
             wbTopBanner.insertBefore(statusDiv, afterButtons);
             const statusIndicator = document.createElement("span");
             statusIndicator.innerText = "Loading...";
-            statusIndicator.style.color = "#8a9df2";
+            statusIndicator.classList.add("text-info");
             statusDiv.appendChild(statusIndicator);
-            eventual.then(resp => {
+
+            currentPagePromise.then(resp => {
                 resp.json().then(j => {
-                    console.log(j.verdict);
                     const v = j.verdict
+
+                    // flush previous classes
+                    statusIndicator.classList = []; 
+
                     if (v === "accepted") {
                         statusIndicator.innerText = "Accepted"
-                        statusIndicator.style.color = "#44bd4a"
+                        statusIndicator.classList.add("text-success");
                     } else if (v === "rejected") {
                         statusIndicator.innerText = "Rejected"
-                        statusIndicator.style.color = "#e83535"
+                        statusIndicator.classList.add("text-danger");
                     } else {
                         statusIndicator.innerText = "Undecided"
-                        statusIndicator.style.color = "#8a9df2"
+                        statusIndicator.classList.add("text-info");
                     }
                 })
             })
@@ -79,7 +86,7 @@ const main = () => {
             const buttonAttrs = [
                 {
                     name: "Previous",
-                    color: "#8a9df2",
+                    classes: ["btn", "btn-primary"],
                     onclick: () => {
                         get("paginate/previous", urlQuery).then((resp) => {
                             resp.json().then(j => {
@@ -90,7 +97,7 @@ const main = () => {
                 },
                 {
                     name: "Next",
-                    color: "#8a9df2",
+                    classes: ["btn", "btn-primary"],
                     onclick: () => {
                         get("paginate/next", urlQuery).then((resp) => {
                             resp.json().then(j => {
@@ -101,28 +108,28 @@ const main = () => {
                 },
                 {
                     name: "Reject",
-                    color: "#e83535",
+                    classes: ["btn", "btn-danger"],
                     onclick: () => {
-                        const body = Object.assign(urlBody)
+                        const body = Object.assign(sessionData)
                         body.verdict = "rejected"
                         post("verdicate", body).then(resp => {
                             resp.json().then(j => {
                                 window.location.pathname = j.url
                             })
-                        })
+                        }).catch(e => console.log(e))
                     }
                 },
                 {
                     name: "Accept",
-                    color: "#44bd4a",
+                    classes: ["btn", "btn-success"],
                     onclick: () => {
-                        const body = Object.assign(urlBody)
+                        const body = Object.assign(sessionData)
                         body.verdict = "accepted"
                         post("verdicate", body).then(resp => {
                             resp.json().then(j => {
                                 window.location.pathname = j.url
                             })
-                        })
+                        }).catch(e => console.log(e))
                     }
                 },
             ];
@@ -130,8 +137,10 @@ const main = () => {
                 const newButton = document.createElement("button");
                 newButton.type = "button";
                 newButton.textContent = buttonInfo.name;
-                newButton.style.backgroundColor = buttonInfo.color;
-                newButton.style.margin = "0 10px 0 10px";
+                newButton.classList.add(...buttonInfo.classes);
+                newButton.style.margin = "10px 10px 10px 10px";
+                newButton.style.paddingTop = "0";
+                newButton.style.paddingBottom = "0";
                 newButton.onclick = buttonInfo.onclick;
                 buttonDiv.appendChild(newButton);
             }
