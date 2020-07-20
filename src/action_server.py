@@ -248,6 +248,10 @@ def init_collection_state():
     return states
 
 
+result_path = Path(CONFIG.result_directory).absolute()
+if not os.path.exists(result_path):
+    os.makedirs(result_path)
+
 collection_state = init_collection_state()
 
 if __name__ == '__main__':
