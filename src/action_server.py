@@ -237,8 +237,14 @@ def start_server():
 
 def init_collection_state():
     states = {}
-    for folder in os.listdir(Path(CONFIG.working_directory).absolute() / "collections"):
-        states[folder] = CollectionTracker(folder)
+
+    try:
+        collections = os.listdir(Path(CONFIG.working_directory).absolute() / "collections")
+        for folder in collections:
+            states[folder] = CollectionTracker(folder)
+    except FileNotFoundError:
+        pass
+
     return states
 
 
