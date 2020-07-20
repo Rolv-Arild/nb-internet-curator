@@ -137,7 +137,7 @@ async def add_collection_endpoint(request: Request):
 
 
 @routes.route(METH_OPTIONS, "/paginate/{direction}")
-async def add_collection_options(request: Request):
+async def paginate_options(request: Request):
     origin = request.headers.get("Origin", "")
     return web.HTTPOk(headers={"Access-Control-Allow-Origin": origin,
                                "Access-Control-Allow-Method": "GET",
@@ -145,7 +145,7 @@ async def add_collection_options(request: Request):
 
 
 @routes.get("/paginate/{direction}")
-async def get_next_endpoint(request: Request):
+async def paginate_endpoint(request: Request):
     origin = request.headers.get("Origin", "")
     direction = request.match_info["direction"]
     query = request.query
