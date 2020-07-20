@@ -1,6 +1,7 @@
 import os
 from enum import Enum
 from pathlib import Path
+from typing import Callable, Union
 
 from aiohttp import web
 from aiohttp.hdrs import METH_OPTIONS
@@ -21,9 +22,8 @@ class Verdict(Enum):
 class CollectionTracker:
     def __init__(self, folder, df=None):
         self.verdict_path = Path(CONFIG.result_directory).absolute() / f"{folder}.tsv"
-        self.current_index = 0
         if df is None:
-            self.df: pd.DataFrame = pd.read_csv(self.verdict_path)
+            self.df: pd.DataFrame = pd.read_csv(self.verdict_path, sep="\t")
         else:
             self.df = df
             self.save()
@@ -31,36 +31,51 @@ class CollectionTracker:
     def save(self):
         self.df.to_csv(self.verdict_path, sep="\t")
 
-    def get_next(self):
-        self.current_index = (self.current_index + 1) % len(self.df)
-        return self.df.iloc[self.current_index]
+    def _get_current_index(self, date, uri):
+        # print(date, uri)
+        date = int(date)
+        print(self.df[(self.df.date == date) & (self.df.uri == uri)])
+        print(self.df.index.dtype)
+        return self.df[(self.df.date == date) & (self.df.uri == uri)].index[0]
 
-    def get_previous(self):
-        self.current_index = (self.current_index - 1) % len(self.df)
-        return self.df.iloc[self.current_index]
+    def get_current(self, date, uri):
+        return self.df.iloc[self._get_current_index(date, uri)]
 
-    def get_next_undecided(self):
-        row = self.get_next()
+    def get_next(self, date, uri):
+        index = self._get_current_index(date, uri)
+        index = (index + 1) % len(self.df)
+        return self.df.iloc[index]
+
+    def get_previous(self, date, uri):
+        index = self._get_current_index(date, uri)
+        index = (index - 1) % len(self.df)
+        return self.df.iloc[index]
+
+    def get_next_undecided(self, date, uri):
+        row = self.get_next(date, uri)
         c = 0
         while row.curator_verdict != Verdict.UNDECIDED.value and c < len(self.df):
-            row = self.get_next()
+            row = self.get_next(row.date, row.uri)
             c += 1
         return row
 
-    def get_previous_undecided(self):
-        row = self.get_previous()
+    def get_previous_undecided(self, date, uri) -> pd.Series:
+        row = self.get_previous(date, uri)
         c = 0
         while row.curator_verdict != Verdict.UNDECIDED.value and c < len(self.df):
-            row = self.get_previous()
+            row = self.get_previous(row.date, row.uri)
             c += 1
         return row
 
     def set_verdict(self, date, uri, verdict):
         selection = (self.df.date == date) & (self.df.uri == uri)
-        self.df.loc[selection, "verdict"] = verdict
-        self.save()
-        if isinstance(selection, pd.Series):
-            return selection.sum() > 0
+        index = self._get_current_index(date, uri)
+        verdict_index = list(self.df.columns).index("curator_verdict")
+        if isinstance(verdict, Verdict):
+            self.df.iloc[index, verdict_index] = verdict.value
+            self.save()
+            if isinstance(selection, pd.Series):
+                return selection.sum() > 0
         return None
 
 
@@ -119,6 +134,97 @@ async def add_collection_endpoint(request: Request):
         return web.HTTPBadRequest(reason="Missing required field", headers=h)
     except ValueError:
         return web.HTTPBadRequest(reason="Folder was not in working directory", headers=h)
+
+
+@routes.route(METH_OPTIONS, "/paginate/{direction}")
+async def add_collection_options(request: Request):
+    origin = request.headers.get("Origin", "")
+    return web.HTTPOk(headers={"Access-Control-Allow-Origin": origin,
+                               "Access-Control-Allow-Method": "GET",
+                               "Access-Control-Allow-Headers": "Content-Type"})
+
+
+@routes.get("/paginate/{direction}")
+async def get_next_endpoint(request: Request):
+    origin = request.headers.get("Origin", "")
+    direction = request.match_info["direction"]
+    query = request.query
+
+    collection = query.get("collection", "")
+    if collection == "":
+        return web.HTTPBadRequest(reason="Missing required field: 'collection'")
+    tracker = collection_state.get(collection, None)
+    if tracker is None:
+        return web.HTTPBadRequest(reason="Failed to find collection")
+    date = query.get("date", "")
+    if date == "":
+        return web.HTTPBadRequest(reason="Missing required field: 'date'")
+    url = query.get("url", "")
+    if url == "":
+        return web.HTTPBadRequest(reason="Missing required field: 'url'")
+
+    method: Union[Callable[[str, str], pd.Series], None] = {
+        "next": tracker.get_next,
+        "previous": tracker.get_previous,
+        "next_undecided": tracker.get_next_undecided,
+        "previous_undecided": tracker.get_previous_undecided,
+        "current": tracker.get_current
+    }.get(direction, None)
+
+    if method is None:
+        return web.HTTPBadRequest(reason="Invalid direction")
+
+    row = method(date, url)
+    response = {
+        "url": f"/{collection}/{str(row.date)}/{row.uri}",
+        "verdict": row.curator_verdict
+    }
+
+    h = {"Access-Control-Allow-Origin": origin}
+    return web.json_response(response, headers=h)
+
+
+@routes.route(METH_OPTIONS, "/verdicate")
+async def verdicate_options(request: Request):
+    origin = request.headers.get("Origin", "")
+    return web.HTTPOk(headers={"Access-Control-Allow-Origin": origin,
+                               "Access-Control-Allow-Method": "POST",
+                               "Access-Control-Allow-Headers": "Content-Type"})
+
+
+@routes.post("/verdicate")
+async def verdicate_endpoint(request: Request):
+    origin = request.headers.get("Origin", "")
+    data = await request.json()
+
+    collection = data.get("collection", "")
+    if collection is None:
+        return web.HTTPBadRequest(reason="Missing required field: 'collection'")
+    tracker = collection_state.get(collection, None)
+    if tracker is None:
+        return web.HTTPBadRequest(reason="Failed to find collection")
+    date = data.get("date", None)
+    if date is None:
+        return web.HTTPBadRequest(reason="Missing required field: 'date'")
+    url = data.get("url", None)
+    if url is None:
+        return web.HTTPBadRequest(reason="Missing required field: 'url'")
+    verdict = data.get("verdict", None)
+    if verdict is None:
+        return web.HTTPBadRequest(reason="Missing required field: 'verdict'")
+
+    try:
+        verdict = Verdict(verdict)
+    except ValueError:
+        return web.HTTPBadRequest(reason="Invalid verdict")
+    tracker.set_verdict(date, url, verdict)
+    row = tracker.get_next_undecided(date, url)
+    response = {
+        "url": f"/{collection}/{str(row.date)}/{row.uri}"
+    }
+
+    h = {"Access-Control-Allow-Origin": origin}
+    return web.json_response(response, headers=h)
 
 
 def start_server():
