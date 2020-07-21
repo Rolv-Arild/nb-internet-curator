@@ -149,13 +149,14 @@ async def paginate_endpoint(request: Request):
     origin = request.headers.get("Origin", "")
     direction = request.match_info["direction"]
     query = request.query
+    h = {"Access-Control-Allow-Origin": origin}
 
     collection = query.get("collection", "")
     if collection == "":
-        return web.HTTPBadRequest(reason="Missing required field: 'collection'")
+        return web.HTTPBadRequest(reason="Missing required field: 'collection'", headers=h)
     tracker = collection_state.get(collection, None)
     if tracker is None:
-        return web.HTTPBadRequest(reason="Failed to find collection")
+        return web.HTTPBadRequest(reason="Failed to find collection", headers=h)
 
     if direction == "initiate":
         row = tracker.df.iloc[-1]  # So that next is 0
@@ -164,10 +165,10 @@ async def paginate_endpoint(request: Request):
     else:
         date = query.get("date", "")
         if date == "" and direction != "current":
-            return web.HTTPBadRequest(reason="Missing required field: 'date'")
+            return web.HTTPBadRequest(reason="Missing required field: 'date'", headers=h)
         url = query.get("url", "")
         if url == "" and direction != "current":
-            return web.HTTPBadRequest(reason="Missing required field: 'url'")
+            return web.HTTPBadRequest(reason="Missing required field: 'url'", headers=h)
 
     method: Union[Callable[[str, str], pd.Series], None] = {
         "next": tracker.get_next,
@@ -179,7 +180,7 @@ async def paginate_endpoint(request: Request):
     }.get(direction, None)
 
     if method is None:
-        return web.HTTPBadRequest(reason="Invalid direction")
+        return web.HTTPBadRequest(reason="Invalid direction", headers=h)
 
     row = method(date, url)
     response = {
@@ -187,7 +188,6 @@ async def paginate_endpoint(request: Request):
         "verdict": row.curator_verdict
     }
 
-    h = {"Access-Control-Allow-Origin": origin}
     return web.json_response(response, headers=h)
 
 
@@ -203,34 +203,34 @@ async def verdicate_options(request: Request):
 async def verdicate_endpoint(request: Request):
     origin = request.headers.get("Origin", "")
     data = await request.json()
+    h = {"Access-Control-Allow-Origin": origin}
 
     collection = data.get("collection", "")
     if collection is None:
-        return web.HTTPBadRequest(reason="Missing required field: 'collection'")
+        return web.HTTPBadRequest(headers=h, reason="Missing required field: 'collection'")
     tracker = collection_state.get(collection, None)
     if tracker is None:
-        return web.HTTPBadRequest(reason="Failed to find collection")
+        return web.HTTPBadRequest(headers=h, reason="Failed to find collection")
     date = data.get("date", None)
     if date is None:
-        return web.HTTPBadRequest(reason="Missing required field: 'date'")
+        return web.HTTPBadRequest(headers=h, reason="Missing required field: 'date'")
     url = data.get("url", None)
     if url is None:
-        return web.HTTPBadRequest(reason="Missing required field: 'url'")
+        return web.HTTPBadRequest(headers=h, reason="Missing required field: 'url'")
     verdict = data.get("verdict", None)
     if verdict is None:
-        return web.HTTPBadRequest(reason="Missing required field: 'verdict'")
+        return web.HTTPBadRequest(headers=h, reason="Missing required field: 'verdict'")
 
     try:
         verdict = Verdict(verdict)
     except ValueError:
-        return web.HTTPBadRequest(reason="Invalid verdict")
+        return web.HTTPBadRequest(headers=h, reason="Invalid verdict")
     tracker.set_verdict(date, url, verdict)
     row = tracker.get_next_undecided(date, url)
     response = {
         "url": f"/{collection}/{str(row.date)}/{row.uri}"
     }
 
-    h = {"Access-Control-Allow-Origin": origin}
     return web.json_response(response, headers=h)
 
 

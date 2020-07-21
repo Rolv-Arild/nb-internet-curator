@@ -1,25 +1,26 @@
 {% extends "base.html" %}
 {% block body %}
-<div class="container">
-    <div class="row">
+<div class="container" id="container">
+    <div>
         <h2 class="display-2">{{ _('Pywb Wayback Machine') }}</h2>
-        <p class="lead">This archive contains the following collections:</p>
     </div>
-    <label for="filepicker" class="btn btn-primary" >Choose archive folder</label>
-    <input type="file" 
-        id="filepicker" 
-        class="btn btn-primary" 
-        style="opacity: 0;"
-        name="fileList" 
-        webkitdirectory 
-        multiple/>
+    <label id="file-button" for="filepicker" class="btn btn-primary">Choose archive folder</label>
+    <input type="file"
+           id="filepicker"
+           class="btn btn-primary"
+           style="opacity: 0;"
+           name="fileList"
+           webkitdirectory
+           multiple/>
+    <p class="lead">This archive contains the following collections:</p>
     <h2 style="padding-top: 50px;">
         Collections:
     </h2>
     <ul class="list-group">
         {% for route in routes %}
         <li class="list-group">
-            <a class="list-group-item list-group-item-action" href="{{ env['pywb.app_prefix'] + '/' + route }}">{{ '/' + route }}</a>
+            <a class="list-group-item list-group-item-action" href="{{ env['pywb.app_prefix'] + '/' + route }}">{{ '/' +
+                route }}</a>
             {% if all_metadata and all_metadata[route] %}
             ({{ all_metadata[route].title }})
             {% endif %}
@@ -30,7 +31,7 @@
 <script>
     default_url = "http://localhost:6969"
 
-    async function post(endpoint, body) {
+    function post(endpoint, body) {
         return fetch(default_url + "/" + endpoint, {
             method: "POST",
             mode: "cors",
@@ -41,29 +42,37 @@
                 "Origin": "http://localhost/8080"
             },
             referrerPolicy: 'no-referrer',
-            body: body
+            body: JSON.stringify(body)
         })
     }
 
-    function postFolder(folder) {
-        return post("add_collection",
-            JSON.stringify({
-                "folder": folder
-            }))
+    const container = document.getElementById("container");
+    const fileButton = document.getElementById("file-button");
+
+    function spawnAlert(e) {
+        const div = document.createElement("div");
+        div.classList.add("alert", "alert-warning")
+        div.innerText = "Got error: " + e;
+        container.insertBefore(div, fileButton);
+        setTimeout(() => {
+            container.removeChild(div);
+        }, 10000);
     }
 
     const filepicker = document.getElementById("filepicker");
+
     if (filepicker) {
         filepicker.addEventListener("change", function (event) {
             if (!event.target.files) {
                 return;
             }
-            console.log(filepicker.classList)
             let files = event.target.files;
-            folder = files[0].webkitRelativePath.split("/")[0];
-            postFolder(folder).catch(e => {
-                console.log(e);
-            })
+            const folder = files[0].webkitRelativePath.split("/")[0];
+            post("add_collection", {folder}).then(resp => {
+                if (resp.status >= 300) {
+                    resp.text().then(s => spawnAlert(s))
+                }
+            }).catch(e => spawnAlert(e))
         }, false);
     }
 </script>

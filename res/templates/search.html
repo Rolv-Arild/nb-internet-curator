@@ -17,7 +17,7 @@
         </h4>
     </div>
 </div>
-<div class="container mt-4">
+<div class="container mt-4" id="main-container">
     <button id="start-curate" class="btn btn-primary">Start curating</button>
     <form class="needs-validation" id="search-form" novalidate>
         <div class="form-row">
@@ -167,15 +167,32 @@
         })
     }
 
+    const container = document.getElementById("main-container");
+
     document.addEventListener("DOMContentLoaded", () => {
-        const button = document.getElementById("start-curate");
-        button.onclick = () => {
+        const startCurateButton = document.getElementById("start-curate");
+
+        const spawnAlert = (e) => {
+            const div = document.createElement("div");
+            div.classList.add("alert", "alert-warning")
+            div.innerText = "Got error: " + e;
+            container.insertBefore(div, startCurateButton);
+            setTimeout(() => {
+                container.removeChild(div);
+            }, 10000);
+        }
+
+        startCurateButton.onclick = () => {
             get("paginate/initiate", "collection={{ coll_title }}").then(resp => {
-                resp.json().then(j => {
-                    // console.log(j.url, window.location.href)
-                    window.location.pathname = j.url
-                })
-            })
+                if (resp.status >= 300) {
+                    resp.text().then(s => spawnAlert(s))
+                } else {
+                    resp.json().then(j => {
+                        // console.log(j.url, window.location.href)
+                        window.location.pathname = j.url
+                    })
+                }
+            }).catch(e => spawnAlert(e));
         }
     })
 

@@ -10,6 +10,6 @@ setup(
     long_description=readme,
     author="Rolv-Arild Braaten, Aksel Hjerpbakk",
     author_email="rolv.braaten@nb.no, aksel.hjerpbakk@nb.no",
-    url="https://github.com/",  # TODO
+    url="https://github.com/Rolv-Arild/nb-internet-curator",
     packages=find_packages(include="src")
 )

@@ -63,48 +63,75 @@ const main = () => {
             statusIndicator.classList.add("text-info");
             statusDiv.appendChild(statusIndicator);
 
+            const body = document.getElementsByTagName("body")[0];
+            const wbifd = document.getElementById("wb_iframe_div");
+
+            const spawnAlert = e => {
+                const div = document.createElement("div");
+                div.classList.add("alert", "alert-warning")
+                div.innerText = "Got error: " + e;
+                div.style.position = "absolute";
+                div.style.top = "50px";
+                div.style.left = "20px";
+                div.style.width = "calc(100vw - 40px)";
+                body.appendChild(div);
+                // body.insertBefore(div, wbifd);
+                setTimeout(() => {
+                    body.removeChild(div);
+                    // body.removeChild(div);
+                }, 10000);
+            }
+
             currentPagePromise.then(resp => {
-                resp.json().then(j => {
-                    const v = j.verdict
+                // flush previous classes
+                statusIndicator.classList = [];
+                if (resp.status >= 300) {
+                    statusIndicator.innerText = "Error";
+                    statusIndicator.classList.add("text-danger");
+                } else {
+                    resp.json().then(j => {
+                        const v = j.verdict
 
-                    // flush previous classes
-                    statusIndicator.classList = []; 
+                        if (v === "accepted") {
+                            statusIndicator.innerText = "Accepted"
+                            statusIndicator.classList.add("text-success");
+                        } else if (v === "rejected") {
+                            statusIndicator.innerText = "Rejected"
+                            statusIndicator.classList.add("text-danger");
+                        } else {
+                            statusIndicator.innerText = "Undecided"
+                            statusIndicator.classList.add("text-info");
+                        }
+                    })
+                }
+            }).catch(e => spawnAlert(e))
 
-                    if (v === "accepted") {
-                        statusIndicator.innerText = "Accepted"
-                        statusIndicator.classList.add("text-success");
-                    } else if (v === "rejected") {
-                        statusIndicator.innerText = "Rejected"
-                        statusIndicator.classList.add("text-danger");
-                    } else {
-                        statusIndicator.innerText = "Undecided"
-                        statusIndicator.classList.add("text-info");
-                    }
-                })
-            })  // TODO catch
+            const responseAction = (resp) => {
+                if (resp.status >= 300) {
+                    resp.text().then(s => spawnAlert(s))
+                } else {
+                    resp.json().then(j => {
+                        window.location.pathname = j.url
+                    })
+                }
+            }
 
             const buttonAttrs = [
                 {
                     name: "Previous",
                     classes: ["btn", "btn-primary"],
                     onclick: () => {
-                        get("paginate/previous", urlQuery).then((resp) => {
-                            resp.json().then(j => {
-                                window.location.pathname = j.url
-                            })
-                        }).catch(e => console.log(e))
-                    }
+                        get("paginate/previous", urlQuery).then(responseAction).catch(e => console.log(e))
+                    },
+                    key: ","
                 },
                 {
                     name: "Next",
                     classes: ["btn", "btn-primary"],
                     onclick: () => {
-                        get("paginate/next", urlQuery).then((resp) => {
-                            resp.json().then(j => {
-                                window.location.pathname = j.url
-                            })
-                        }).catch(e => console.log(e))
-                    }
+                        get("paginate/next", urlQuery).then(responseAction).catch(e => console.log(e))
+                    },
+                    key: "."
                 },
                 {
                     name: "Reject",
@@ -112,12 +139,9 @@ const main = () => {
                     onclick: () => {
                         const body = Object.assign(sessionData)
                         body.verdict = "rejected"
-                        post("verdicate", body).then(resp => {
-                            resp.json().then(j => {
-                                window.location.pathname = j.url
-                            })
-                        }).catch(e => console.log(e))
-                    }
+                        post("verdicate", body).then(responseAction).catch(e => console.log(e))
+                    },
+                    key: "r"
                 },
                 {
                     name: "Accept",
@@ -125,12 +149,9 @@ const main = () => {
                     onclick: () => {
                         const body = Object.assign(sessionData)
                         body.verdict = "accepted"
-                        post("verdicate", body).then(resp => {
-                            resp.json().then(j => {
-                                window.location.pathname = j.url
-                            })
-                        }).catch(e => console.log(e))
-                    }
+                        post("verdicate", body).then(responseAction).catch(e => console.log(e))
+                    },
+                    key: "a"
                 },
             ];
             for (const buttonInfo of buttonAttrs) {
@@ -143,6 +164,13 @@ const main = () => {
                 newButton.style.paddingBottom = "0";
                 newButton.onclick = buttonInfo.onclick;
                 buttonDiv.appendChild(newButton);
+
+                document.addEventListener("keypress", (ev) => {
+                    if (ev.key !== buttonInfo.key) {
+                        return
+                    }
+                    buttonInfo.onclick();
+                });
             }
         }, 0);
     })
