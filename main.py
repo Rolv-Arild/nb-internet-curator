@@ -12,12 +12,23 @@ from pywb.manager.manager import main as wb_manager
 from src.util import cd, CONFIG
 
 
-def init_wayback(working_dir):
-    src = Path(__file__).parent.absolute() / "res" / "templates"
-    dst = Path(working_dir).absolute() / "templates"
+def move(src, dst):
     if os.path.exists(dst):
         shutil.rmtree(dst)  # TODO don't nuke
     shutil.copytree(src, dst)
+
+
+def init_wayback(working_dir):
+    res = Path(__file__).parent.absolute() / "res"
+    work_dir = Path(working_dir).absolute()
+    templates_src = res / "templates"
+    templates_dst = work_dir / "templates"
+    static_src = res / "static"
+    static_dst = work_dir / "static"
+
+    move(templates_src, templates_dst)
+    move(static_src, static_dst)
+
     with cd(working_dir):
         wayback()
 

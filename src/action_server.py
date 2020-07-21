@@ -29,7 +29,7 @@ class CollectionTracker:
             self.save()
 
     def save(self):
-        self.df.to_csv(self.verdict_path, sep="\t")
+        self.df.to_csv(self.verdict_path, sep="\t", index=False)
 
     def _get_current_index(self, date, uri):
         # print(date, uri)
@@ -156,19 +156,26 @@ async def paginate_endpoint(request: Request):
     tracker = collection_state.get(collection, None)
     if tracker is None:
         return web.HTTPBadRequest(reason="Failed to find collection")
-    date = query.get("date", "")
-    if date == "":
-        return web.HTTPBadRequest(reason="Missing required field: 'date'")
-    url = query.get("url", "")
-    if url == "":
-        return web.HTTPBadRequest(reason="Missing required field: 'url'")
+
+    if direction == "initiate":
+        row = tracker.df.iloc[-1]  # So that next is 0
+        date = row.date
+        url = row.uri
+    else:
+        date = query.get("date", "")
+        if date == "" and direction != "current":
+            return web.HTTPBadRequest(reason="Missing required field: 'date'")
+        url = query.get("url", "")
+        if url == "" and direction != "current":
+            return web.HTTPBadRequest(reason="Missing required field: 'url'")
 
     method: Union[Callable[[str, str], pd.Series], None] = {
         "next": tracker.get_next,
         "previous": tracker.get_previous,
         "next_undecided": tracker.get_next_undecided,
         "previous_undecided": tracker.get_previous_undecided,
-        "current": tracker.get_current
+        "current": tracker.get_current,
+        "initiate": tracker.get_next_undecided
     }.get(direction, None)
 
     if method is None:

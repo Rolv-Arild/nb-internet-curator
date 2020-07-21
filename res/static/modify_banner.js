@@ -81,7 +81,7 @@ const main = () => {
                         statusIndicator.classList.add("text-info");
                     }
                 })
-            })
+            })  // TODO catch
 
             const buttonAttrs = [
                 {
