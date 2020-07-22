@@ -49,10 +49,15 @@
     const container = document.getElementById("container");
     const fileButton = document.getElementById("file-button");
 
-    function spawnAlert(e) {
+    function spawnAlert(msg, alertClass) {
         const div = document.createElement("div");
-        div.classList.add("alert", "alert-warning")
-        div.innerText = "Got error: " + e;
+        if (alertClass === "warning") {
+            div.classList.add("alert", "alert-warning")
+            div.innerText = "Got error: " + msg;
+        } else if (alertClass === "info") {
+            div.classList.add("alert", "alert-info")
+            div.innerText = msg
+        }
         container.insertBefore(div, fileButton);
         setTimeout(() => {
             container.removeChild(div);
@@ -68,11 +73,14 @@
             }
             let files = event.target.files;
             const folder = files[0].webkitRelativePath.split("/")[0];
+            spawnAlert("Creating collection...", "info");
             post("add_collection", {folder}).then(resp => {
                 if (resp.status >= 300) {
-                    resp.text().then(s => spawnAlert(s))
+                    resp.text().then(s => spawnAlert(s, "warning"))
+                } else {
+                    location.reload();
                 }
-            }).catch(e => spawnAlert(e))
+            }).catch(e => spawnAlert(e, "warning"))
         }, false);
     }
 </script>

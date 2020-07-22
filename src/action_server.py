@@ -1,4 +1,6 @@
+import json
 import os
+import re
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Union
@@ -20,10 +22,13 @@ class Verdict(Enum):
 
 
 class CollectionTracker:
+    COLUMNS = ("filename", "date", "uri", "curator_verdict", "digest", "comment")
+    DTYPES = (str, int, str, str, str, str)
+
     def __init__(self, folder, df=None):
         self.verdict_path = Path(CONFIG.result_directory).absolute() / f"{folder}.tsv"
         if df is None:
-            self.df: pd.DataFrame = pd.read_csv(self.verdict_path, sep="\t")
+            self.df: pd.DataFrame = pd.read_csv(self.verdict_path, sep="\t", usecols=self.COLUMNS, dtype=dict(zip(self.COLUMNS, self.DTYPES)))
         else:
             self.df = df
             self.save()
@@ -100,15 +105,24 @@ def add_collection(*, folder):
             do_add = False
 
         if do_add:
-            cols = ("path", "date", "uri", "curator_verdict", "comment")
-            data = {c: [] for c in cols}
+            data = {c: [] for c in CollectionTracker.COLUMNS}
+            paths = []
             for arc_path in find_arcs(arc_folder):
-                wb_manager(["add", folder, arc_path])
-                for record in iter_record(arc_path):
-                    if is_root(record):
-                        line = (arc_path, *get_date_and_uri(record), Verdict.UNDECIDED.value, "")
-                        # print(line)
-                        for c, val in zip(cols, line):
+                paths.append(arc_path)
+            wb_manager(["add", folder, *paths])
+            with open(wdir / "collections" / folder / "indexes" / "index.cdxj") as index_file:
+                for line in index_file:
+                    surt, ts, js = line.split(maxsplit=2)
+                    js = json.loads(js)
+                    reg = r"^https?:\/\/[\w.]+no(:\d+)?\/?$"
+                    mime = js.get("mime", "")
+                    status = js.get("status", "")
+                    url = js.get("url", "")
+                    fn = js.get("filename", "")
+                    digest = js.get("digest", "")
+                    if mime == "text/html" and status == "200" and re.search(reg, url):
+                        line = (fn, ts, url, Verdict.UNDECIDED.value, digest, "")
+                        for c, val in zip(CollectionTracker.COLUMNS, line):
                             data[c].append(val)
     df = pd.DataFrame(data)
     collection_state[folder] = CollectionTracker(folder, df)
