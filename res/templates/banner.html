@@ -21,6 +21,23 @@ window.banner_info = {
 </script>
 
 <!-- default banner, create through js -->
+<script id="comment-prompt" type="text/html">
+<div class="jumbotron" style="position: absolute; left: calc(50vw - 400px); top: calc(50vh - 300px); width: 800px; height: 600px;">
+    <div class="container">
+        <div class="col">
+            <h3>Comment</h3>
+        </div>
+        <div class="col">
+            <label for="comment-area" hidden></label>
+            <textarea id="comment-area" style="max-height: 400px; min-height: 300px; width: 100%;"></textarea>
+        </div>
+        <div class="col">
+            <button id="comment-cancel" class="btn btn-primary">Cancel</button>
+            <button id="comment-submit" class="btn btn-primary" style="float: right">Submit</button>
+        </div>
+    </div>
+</div>
+</script>
 <script src='{{ static_prefix }}/default_banner.js'> </script>
 <script defer src='{{ static_prefix }}/modify_banner.js'></script>
 <link rel='stylesheet' href='{{ static_prefix }}/default_banner.css'/>

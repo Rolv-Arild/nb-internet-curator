@@ -63,8 +63,20 @@ const main = () => {
             statusIndicator.classList.add("text-info");
             statusDiv.appendChild(statusIndicator);
 
+            const commentPrompt = document.createElement("div");
+
+            commentPrompt.innerHTML = document.getElementById("comment-prompt").innerHTML;
+
             const body = document.getElementsByTagName("body")[0];
-            const wbifd = document.getElementById("wb_iframe_div");
+
+            body.appendChild(commentPrompt);
+
+            const commentCancel = document.getElementById("comment-cancel");
+            const commentSubmit = document.getElementById("comment-submit");
+            const commentArea = document.getElementById("comment-area");
+
+            commentPrompt.style.display = "none"
+
 
             const spawnAlert = e => {
                 const div = document.createElement("div");
@@ -75,10 +87,8 @@ const main = () => {
                 div.style.left = "20px";
                 div.style.width = "calc(100vw - 40px)";
                 body.appendChild(div);
-                // body.insertBefore(div, wbifd);
                 setTimeout(() => {
                     body.removeChild(div);
-                    // body.removeChild(div);
                 }, 10000);
             }
 
@@ -90,7 +100,7 @@ const main = () => {
                     statusIndicator.classList.add("text-danger");
                 } else {
                     resp.json().then(j => {
-                        const v = j.verdict
+                        const v = j.verdict;
 
                         if (v === "accepted") {
                             statusIndicator.innerText = "Accepted"
@@ -102,6 +112,8 @@ const main = () => {
                             statusIndicator.innerText = "Undecided"
                             statusIndicator.classList.add("text-info");
                         }
+
+                        commentArea.value = j.comment;
                     })
                 }
             }).catch(e => spawnAlert(e))
@@ -116,7 +128,36 @@ const main = () => {
                 }
             }
 
+            const toggleCommentPrompt = () => {
+                if (commentPrompt.style.display === "none") {
+                    commentPrompt.style.display = "block"
+                } else {
+                    commentPrompt.style.display = "none"
+                }
+            }
+
+            commentCancel.onclick = toggleCommentPrompt;
+            commentSubmit.onclick = () => {
+                const comment = commentArea.value;
+                const body = Object.assign(sessionData)
+                body.comment = comment
+                post("commentate", body).then(resp => {
+                    if (resp.status >= 300) {
+                        resp.text().then(s => {
+                            spawnAlert(s)
+                        })
+                    }
+                })
+                toggleCommentPrompt()
+            }
+
             const buttonAttrs = [
+                {
+                    name: "Comment",
+                    classes: ["btn", "btn-secondary"],
+                    onclick: toggleCommentPrompt,
+                    key: "c"
+                },
                 {
                     name: "Previous",
                     classes: ["btn", "btn-primary"],
@@ -168,6 +209,9 @@ const main = () => {
                 document.addEventListener("keypress", (ev) => {
                     if (ev.key !== buttonInfo.key) {
                         return
+                    }
+                    if (commentPrompt.style.display !== "none") {
+                        return;
                     }
                     buttonInfo.onclick();
                 });

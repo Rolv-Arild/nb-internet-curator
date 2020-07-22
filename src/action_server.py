@@ -27,16 +27,17 @@ class CollectionTracker:
         else:
             self.df = df
             self.save()
+        self.df.comment = self.df.comment.fillna("")
 
     def save(self):
         self.df.to_csv(self.verdict_path, sep="\t", index=False)
 
     def _get_current_index(self, date, uri):
-        # print(date, uri)
         date = int(date)
-        print(self.df[(self.df.date == date) & (self.df.uri == uri)])
-        print(self.df.index.dtype)
-        return self.df[(self.df.date == date) & (self.df.uri == uri)].index[0]
+        selection = self.df[(self.df.date == date) & (self.df.uri == uri)].index
+        if len(selection) <= 0:
+            print(date, uri)
+        return selection[0]
 
     def get_current(self, date, uri):
         return self.df.iloc[self._get_current_index(date, uri)]
@@ -68,14 +69,19 @@ class CollectionTracker:
         return row
 
     def set_verdict(self, date, uri, verdict):
-        selection = (self.df.date == date) & (self.df.uri == uri)
         index = self._get_current_index(date, uri)
         verdict_index = list(self.df.columns).index("curator_verdict")
         if isinstance(verdict, Verdict):
             self.df.iloc[index, verdict_index] = verdict.value
             self.save()
-            if isinstance(selection, pd.Series):
-                return selection.sum() > 0
+        return None
+
+    def set_comment(self, date, uri, comment):
+        index = self._get_current_index(date, uri)
+        comment_index = list(self.df.columns).index("comment")
+        if isinstance(comment, str):
+            self.df.iloc[index, comment_index] = comment
+            self.save()
         return None
 
 
@@ -94,13 +100,13 @@ def add_collection(*, folder):
             do_add = False
 
         if do_add:
-            cols = ("path", "date", "uri", "curator_verdict")
+            cols = ("path", "date", "uri", "curator_verdict", "comment")
             data = {c: [] for c in cols}
             for arc_path in find_arcs(arc_folder):
                 wb_manager(["add", folder, arc_path])
                 for record in iter_record(arc_path):
                     if is_root(record):
-                        line = (arc_path, *get_date_and_uri(record), Verdict.UNDECIDED.value)
+                        line = (arc_path, *get_date_and_uri(record), Verdict.UNDECIDED.value, "")
                         # print(line)
                         for c, val in zip(cols, line):
                             data[c].append(val)
@@ -185,7 +191,8 @@ async def paginate_endpoint(request: Request):
     row = method(date, url)
     response = {
         "url": f"/{collection}/{str(row.date)}/{row.uri}",
-        "verdict": row.curator_verdict
+        "verdict": row.curator_verdict,
+        "comment": row.comment
     }
 
     return web.json_response(response, headers=h)
@@ -232,6 +239,39 @@ async def verdicate_endpoint(request: Request):
     }
 
     return web.json_response(response, headers=h)
+
+
+@routes.route(METH_OPTIONS, "/commentate")
+async def commentate_options(request: Request):
+    origin = request.headers.get("Origin", "")
+    return web.HTTPOk(headers={"Access-Control-Allow-Origin": origin,
+                               "Access-Control-Allow-Method": "POST",
+                               "Access-Control-Allow-Headers": "Content-Type"})
+
+
+@routes.post("/commentate")
+async def commentate_endpoint(request: Request):
+    origin = request.headers.get("Origin", "")
+    data = await request.json()
+    h = {"Access-Control-Allow-Origin": origin}
+
+    collection = data.get("collection", "")
+    if collection is None:
+        return web.HTTPBadRequest(headers=h, reason="Missing required field: 'collection'")
+    tracker = collection_state.get(collection, None)
+    if tracker is None:
+        return web.HTTPBadRequest(headers=h, reason="Failed to find collection")
+    date = data.get("date", None)
+    if date is None:
+        return web.HTTPBadRequest(headers=h, reason="Missing required field: 'date'")
+    url = data.get("url", None)
+    if url is None:
+        return web.HTTPBadRequest(headers=h, reason="Missing required field: 'url'")
+    comment = data.get("comment", "")
+
+    tracker.set_comment(date, url, comment)
+
+    return web.HTTPOk(headers=h)
 
 
 def start_server():
