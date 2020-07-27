@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Union
@@ -155,7 +156,31 @@ async def add_collection_endpoint(request: Request):
     except TypeError:
         return web.HTTPBadRequest(reason="Missing required field", headers=h)
     except ValueError:
-        return web.HTTPBadRequest(reason="Folder was not in working directory", headers=h)
+        return web.HTTPBadRequest(reason="Folder was not in archive directory", headers=h)
+
+
+@routes.route(METH_OPTIONS, "/delete_collection")
+async def delete_collection_options(request: Request):
+    origin = request.headers.get("Origin", "")
+    return web.HTTPOk(headers={"Access-Control-Allow-Origin": origin,
+                               "Access-Control-Allow-Method": "POST",
+                               "Access-Control-Allow-Headers": "Content-Type"})
+
+
+@routes.post("/delete_collection")
+async def delete_collection_endpoint(request: Request):
+    origin = request.headers.get("Origin", "")
+    data = await request.json()
+    h = {"Access-Control-Allow-Origin": origin}
+    collection = data.get("collection", None)
+    if collection is None:
+        return web.HTTPBadRequest(headers=h, reason="Missing required field: 'collection'")
+    folder = Path(CONFIG.working_directory).absolute() / "collections" / collection
+    try:
+        shutil.rmtree(folder)
+    except Exception as e:
+        return web.HTTPError(reason=f"Error when attempting delete: {e}", headers=h)
+    return web.HTTPOk(headers=h)
 
 
 @routes.route(METH_OPTIONS, "/paginate/{direction}")

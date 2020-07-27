@@ -19,17 +19,71 @@
     <ul class="list-group">
         {% for route in routes %}
         <li class="list-group">
-            <a class="list-group-item list-group-item-action" href="{{ env['pywb.app_prefix'] + '/' + route }}">{{ '/' +
-                route }}</a>
+            <div class="row">
+                <div class="col-9">
+                    <a class="list-group-item list-group-item-action" href="{{ env['pywb.app_prefix'] + '/' + route }}">{{
+                        '/' + route }}</a>
+                </div>
+                <div class="col-1">
+                    <button class="btn btn-danger delete-button-marker" id="delete-button-{{ route }}"><i
+                            class="fa fa-trash"
+                            aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+
             {% if all_metadata and all_metadata[route] %}
             ({{ all_metadata[route].title }})
             {% endif %}
         </li>
         {% endfor %}
     </ul>
+    <div id="delete-prompt" class="jumbotron"
+         style="display: none; position: absolute; left: calc(50vw - 400px); top: calc(50vh - 300px); width: 800px; height: 600px;">
+        <div class="container">
+            <div class="col">
+                <h3 id="delete-prompt-msg">Are you sure you want delete {}?</h3>
+            </div>
+            <div class="col">
+                <button id="delete-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="delete-confirm" class="btn btn-danger" style="float: right">Delete</button>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
     default_url = "http://localhost:6969"
+
+    const deletePrompt = document.getElementById("delete-prompt");
+    const deleteMsg = document.getElementById("delete-prompt-msg");
+    const deleteConfirm = document.getElementById("delete-confirm");
+    const deleteCancel = document.getElementById("delete-cancel");
+
+    function confirmDeletePrompt(collection) {
+        deleteMsg.innerText = `Are you sure you want to delete ${collection}?`;
+        // (`delete_collection/${collection}`, "", "DELETE", "text/plain")
+        deleteConfirm.onclick = () => {
+            post("delete_collection", {collection}).then(resp => {
+                if (resp.status >= 300) {
+                    resp.text().then(s => spawnAlert(s, "warning"))
+                } else {
+                    location.reload();
+                }
+            }).catch(e => spawnAlert(e, "warning"))
+        }
+        deleteCancel.onclick = () => {
+            deletePrompt.style.display = "none";
+        }
+        deletePrompt.style.display = "block";
+    }
+
+    for (const button of document.getElementsByClassName("delete-button-marker")) {
+        console.log(button.id)
+        const collection = button.id.split("delete-button-")[1]
+        button.onclick = () => {
+            confirmDeletePrompt(collection);
+        };
+    }
 
     function post(endpoint, body) {
         return fetch(default_url + "/" + endpoint, {
@@ -45,6 +99,7 @@
             body: JSON.stringify(body)
         })
     }
+
 
     const container = document.getElementById("container");
     const fileButton = document.getElementById("file-button");
