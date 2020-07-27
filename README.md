@@ -11,5 +11,5 @@ This is an internal tool for curating archived web pages at The National Library
 - Install dependencies: ``pip3 install -r requirements.txt``
 - Run the program: ``python3 main.py``
 
-# How to use
-TODO
+# How to use :closed_book:
+Go to the [manual](MANUAL.md)
