@@ -92,32 +92,6 @@ const main = () => {
                 }, 10000);
             }
 
-            currentPagePromise.then(resp => {
-                // flush previous classes
-                statusIndicator.classList = [];
-                if (resp.status >= 300) {
-                    statusIndicator.innerText = "Error";
-                    statusIndicator.classList.add("text-danger");
-                } else {
-                    resp.json().then(j => {
-                        const v = j.verdict;
-
-                        if (v === "accepted") {
-                            statusIndicator.innerText = "Accepted"
-                            statusIndicator.classList.add("text-success");
-                        } else if (v === "rejected") {
-                            statusIndicator.innerText = "Rejected"
-                            statusIndicator.classList.add("text-danger");
-                        } else {
-                            statusIndicator.innerText = "Undecided"
-                            statusIndicator.classList.add("text-info");
-                        }
-
-                        commentArea.value = j.comment;
-                    })
-                }
-            }).catch(e => spawnAlert(e))
-
             const responseAction = (resp) => {
                 if (resp.status >= 300) {
                     resp.text().then(s => spawnAlert(s))
@@ -156,7 +130,8 @@ const main = () => {
                     name: "Comment",
                     classes: ["btn", "btn-secondary"],
                     onclick: toggleCommentPrompt,
-                    key: "c"
+                    key: "c",
+                    button: undefined
                 },
                 {
                     name: "Previous",
@@ -164,7 +139,9 @@ const main = () => {
                     onclick: () => {
                         get("paginate/previous", urlQuery).then(responseAction).catch(e => console.log(e))
                     },
-                    key: ","
+                    key: ",",
+                    button: undefined
+
                 },
                 {
                     name: "Next",
@@ -172,7 +149,9 @@ const main = () => {
                     onclick: () => {
                         get("paginate/next", urlQuery).then(responseAction).catch(e => console.log(e))
                     },
-                    key: "."
+                    key: ".",
+                    button: undefined
+
                 },
                 {
                     name: "Reject",
@@ -182,7 +161,9 @@ const main = () => {
                         body.verdict = "rejected"
                         post("verdicate", body).then(responseAction).catch(e => console.log(e))
                     },
-                    key: "r"
+                    key: "r",
+                    button: undefined
+
                 },
                 {
                     name: "Accept",
@@ -192,7 +173,8 @@ const main = () => {
                         body.verdict = "accepted"
                         post("verdicate", body).then(responseAction).catch(e => console.log(e))
                     },
-                    key: "a"
+                    key: "a",
+                    button: undefined
                 },
             ];
             for (const buttonInfo of buttonAttrs) {
@@ -203,8 +185,10 @@ const main = () => {
                 newButton.style.margin = "10px 10px 10px 10px";
                 newButton.style.paddingTop = "0";
                 newButton.style.paddingBottom = "0";
+                newButton.style.minWidth = "96px"
                 newButton.onclick = buttonInfo.onclick;
                 buttonDiv.appendChild(newButton);
+                buttonInfo.button = newButton
 
                 document.addEventListener("keypress", (ev) => {
                     if (ev.key !== buttonInfo.key) {
@@ -216,6 +200,41 @@ const main = () => {
                     buttonInfo.onclick();
                 });
             }
+
+            currentPagePromise.then(resp => {
+                // flush previous classes
+                statusIndicator.classList = [];
+                for (const buttonInfo of buttonAttrs) {
+                    buttonInfo.button.disabled = false
+                }
+                if (resp.status === 404) {
+                    statusIndicator.innerText = "Not relevant";
+                    statusIndicator.classList.add("text-warning");
+                    for (const buttonInfo of buttonAttrs) {
+                        buttonInfo.button.disabled = true
+                    }
+                } else if (resp.status >= 300) {
+                    statusIndicator.innerText = "Error";
+                    statusIndicator.classList.add("text-danger");
+                } else {
+                    resp.json().then(j => {
+                        const v = j.verdict;
+
+                        if (v === "accepted") {
+                            statusIndicator.innerText = "Accepted"
+                            statusIndicator.classList.add("text-success");
+                        } else if (v === "rejected") {
+                            statusIndicator.innerText = "Rejected"
+                            statusIndicator.classList.add("text-danger");
+                        } else {
+                            statusIndicator.innerText = "Undecided"
+                            statusIndicator.classList.add("text-info");
+                        }
+
+                        commentArea.value = j.comment;
+                    })
+                }
+            }).catch(e => spawnAlert(e))
         }, 0);
     })
 }

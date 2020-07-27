@@ -28,11 +28,14 @@ class CollectionTracker:
     def __init__(self, folder, df=None):
         self.verdict_path = Path(CONFIG.result_directory).absolute() / f"{folder}.tsv"
         if df is None:
-            self.df: pd.DataFrame = pd.read_csv(self.verdict_path, sep="\t", usecols=self.COLUMNS, dtype=dict(zip(self.COLUMNS, self.DTYPES)))
+            self.df: pd.DataFrame = pd.read_csv(self.verdict_path, sep="\t")
         else:
             self.df = df
-            self.save()
-        self.df.comment = self.df.comment.fillna("")
+        for col, dt in zip(self.COLUMNS, self.DTYPES):
+            if dt == str:
+                self.df[col] = self.df[col].fillna("")
+            self.df[col] = self.df[col].astype(dt)
+        self.save()
 
     def save(self):
         self.df.to_csv(self.verdict_path, sep="\t", index=False)
@@ -40,12 +43,11 @@ class CollectionTracker:
     def _get_current_index(self, date, uri):
         date = int(date)
         selection = self.df[(self.df.date == date) & (self.df.uri == uri)].index
-        if len(selection) <= 0:
-            print(date, uri)
         return selection[0]
 
     def get_current(self, date, uri):
-        return self.df.iloc[self._get_current_index(date, uri)]
+        index = self._get_current_index(date, uri)
+        return self.df.iloc[index]
 
     def get_next(self, date, uri):
         index = self._get_current_index(date, uri)
@@ -202,14 +204,18 @@ async def paginate_endpoint(request: Request):
     if method is None:
         return web.HTTPBadRequest(reason="Invalid direction", headers=h)
 
-    row = method(date, url)
-    response = {
-        "url": f"/{collection}/{str(row.date)}/{row.uri}",
-        "verdict": row.curator_verdict,
-        "comment": row.comment
-    }
+    try:
+        row = method(date, url)
+        response = {
+            "url": f"/{collection}/{str(row.date)}/{row.uri}",
+            "verdict": row.curator_verdict,
+            "comment": row.comment
+        }
 
-    return web.json_response(response, headers=h)
+        return web.json_response(response, headers=h)
+    except IndexError:
+        print("IndexError")
+        return web.HTTPNotFound(headers=h)
 
 
 @routes.route(METH_OPTIONS, "/verdicate")

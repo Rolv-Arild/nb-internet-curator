@@ -13,3 +13,4 @@ This is an internal tool for curating archived web pages at The National Library
 
 # How to use :closed_book:
 Go to the [manual](MANUAL.md)
+Disable adblock
