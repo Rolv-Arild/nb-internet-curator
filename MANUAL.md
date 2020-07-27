@@ -1,6 +1,7 @@
 ### english 
 
 # How to use :open_book:
+- Start the program with ``python3 /*path to program*/main.py `` 
 - Go to your pywb page in your browser (most likely localhost:8080)
 - The first time this page will be mostly empty
 - Click on the "Choose archive folder" button
@@ -20,4 +21,5 @@
  - You can now browse the page and decide if it is acceptable. If it is you press "Accept" and you will be taken to the next page.
  - You can also choose to "Reject" the page. This will mark the page as unsuitable for further usage. Pressing this page will also navigate you to the next page
  - Any page you browse can have a comment. To view previous comments you can press the comment button. You can also edit or submit a new comment on any page.
- - The status of the page is indicated in the right corner. Undecided means you have not given the page any verdict yet. Accepted means it is accepted, and rejected means rejected. This status can also be "Error" or "Irrelevant". Irrelevant means that the page is a resource or a sub-page of another page. Error means that an error has occured, and you should attempt to either refresh the page, or restart the python program. 
+ - The status of the page is indicated in the right corner. Undecided means you have not given the page any verdict yet. Accepted means it is accepted, and rejected means rejected. This status can also be "Error" or "Irrelevant". Irrelevant means that the page is a resource or a sub-page of another page. Error means that an error has occured, and you should attempt to either refresh the page, or restart the python program.
+ - When you have given a verdict to all pages (clicking accept/reject sends you to the same page), you should find a folder called "verdicts". It should be placed in the path defined as "result_directory" in config.json 
