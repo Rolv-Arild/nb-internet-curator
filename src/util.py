@@ -6,7 +6,6 @@ from pathlib import Path
 
 import warcio
 
-
 def load_config():
     pth = Path(__file__).parent.parent.absolute() / "config.json"
     config = json.load(open(pth))
@@ -39,7 +38,6 @@ def find_arcs(folder, max_size=2 ** 33):
                 if max_size < 0:
                     return
                 yield pth
-            # yield from iter_arcs(pth, max_size)
         elif os.path.isfile(pth) and "arc" in file:
             max_size -= os.path.getsize(pth)
             if max_size < 0:
@@ -74,7 +72,7 @@ def retrieve_seeds(folder):
     for pth in find_arcs(folder):
         for record in iter_record(pth):
             if is_root(record):
-                yield pth, *get_date_and_uri(record)
+                yield pth, get_date_and_uri(record)
 
 
 if __name__ == '__main__':
