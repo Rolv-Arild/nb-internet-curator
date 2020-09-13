@@ -1,6 +1,6 @@
 # Brukersteg :open_book:
 - Deaktiver alle “adblockers” i nettleseren din eller hvitelist localhost:8080
-- Start programmet med å kjøre ``python3 /*path to program*/main.py ``
+- Start programmet med å kjøre ``python /*path to program*/main.py ``
 - Gå til din pywb instans i nettleseren (localhost:8080)
 - Første gangen vil siden være tom for det meste
 - Klikk på "Choose archive folder" knappen

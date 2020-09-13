@@ -1,6 +1,6 @@
 # How to use :open_book:
 - Disable any adblockers in your browser 
-- Start the program with ``python3 /*path to program*/main.py `` 
+- Start the program with ``python /*path to program*/main.py `` 
 - Go to your pywb page in your browser (most likely localhost:8080)
 - The first time this page will be mostly empty
 - Click on the "Choose archive folder" button
